@@ -20,8 +20,8 @@ function assignAnimationParams() {
     seg.phase = random(TWO_PI);      // where the shape starts in its cycle
   }
   for (let seg of bullSegments) {
-    seg.rate = random(0.02, 0.06);
-    seg.amp = random(0.3, 0.7);
+    seg.rate = random(0.5, 0.1);
+    seg.amp = random(0.5, 0.5);
     seg.phase = random(TWO_PI);
   }
 }
@@ -59,31 +59,49 @@ class BgParticle {
     this.color = random(palette);
   }
 
-  update() {
-    // direction comes from 3D Perlin noise (x, y, time)
-    let angle = noise(
-      this.x * noiseScale,
-      this.y * noiseScale,
-      frameCount * noiseTimeScale
-    ) * TWO_PI * 2; // *2 = more interesting flow
+update() {
+  // 1) Get noise-based direction
+  let angle = noise(
+    this.x * noiseScale,
+    this.y * noiseScale,
+    frameCount * noiseTimeScale
+  ) * TWO_PI * 2;
 
-    this.x += cos(angle) * this.speed;
-    this.y += sin(angle) * this.speed;
+  let dx = cos(angle);
+  let dy = sin(angle);
 
-    // if it drifts off-screen, respawn it
-    if (
-      this.x < -50 || this.x > width + 50 ||
-      this.y < -50 || this.y > height + 50
-    ) {
-      this.reset();
-    }
+  // 2) Strong diagonal bias: up-right "/"
+  // biasX > 0  = right
+  // biasY < 0  = up
+  let biasX = 1.0;
+  let biasY = -1.0;
+
+  // 3) Blend noise + bias
+  // mixNoise small = mostly diagonal, slightly wobbly
+  let mixNoise = 0.25;         // 25% noise
+  let mixBias  = 1.0 - mixNoise; // 75% diagonal
+
+  let moveX = (dx * mixNoise + biasX * mixBias);
+  let moveY = (dy * mixNoise + biasY * mixBias);
+
+  // 4) Apply movement
+  this.x += moveX * this.speed;
+  this.y += moveY * this.speed;
+
+  // 5) Respawn if off-screen
+  if (
+    this.x < -50 || this.x > width + 50 ||
+    this.y < -50 || this.y > height + 50
+  ) {
+    this.reset();
   }
+}
 
   draw() {
     noStroke();
     let c = this.color;
     // low alpha so overlaps create gradients
-    fill(red(c), green(c), blue(c), 140);
+    fill(red(c), green(c), blue(c), 230);
     ellipse(this.x, this.y, this.size, this.size);
   }
 }
