@@ -9,8 +9,8 @@ let bgImg, bullImg;
 let bgSegments = [];
 let bullSegments = [];
 
-let gridSize = 30; // how many grid cells across and down
-let shapeSize = 3.0; // size of each shape (multiplier)
+let gridSize = 75; // how many grid cells across and down
+let shapeSize = 1.75; // size of each shape (multiplier)
 let backColor = 250; // backrgound colour (light grey)
 
 // =====================================
