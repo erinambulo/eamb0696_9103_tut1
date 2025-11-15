@@ -36,11 +36,18 @@ function setup() {
   // create data structures for grid
   createBgSegments();
   createBullSegments();
+
+  // ADDED ATTEMP #2
+  buildPaletteFromBgSegments();
+  createBgParticles();
+  assignAnimationParams();
+
+  buildPaletteFromBgSegments();
+  createBgParticles();
   
   // draw once when starting
   drawAll();
 
-  assignAnimationParams();
 }
 
 // ======================================================================
