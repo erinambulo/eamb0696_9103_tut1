@@ -2,13 +2,80 @@
 // 1. Animation Parameters
 // =====================================
 
-//ADDED ATTEMPT #1
+// ADDED ATTEMPT #2
 
-// Extra settings for Perlin noise background
-let noiseScale = 0.1;     // how zoomed in the noise field is (bigger = smoother blobs)
-let noiseTimeScale = 0.05; // how fast the noise field evolves over time
+// Particles + palette for Perlin-noise background
+let bgParticles = [];
+let palette = [];
 
-//ADDED ATTEMPT #1
+// Perlin noise settings for the flow field
+let noiseScale = 50;      // spatial scale (smaller = smoother, bigger blobs)
+let noiseTimeScale = 100;  // how fast the flow changes over time
+
+
+// Build a colour palette using the colours from bgSegments
+function buildPaletteFromBgSegments() {
+  palette = [];
+  for (let i = 0; i < bgSegments.length; i += 3) {
+    palette.push(bgSegments[i].color);
+  }
+  if (palette.length === 0) {
+    palette.push(color(200, 200, 200));
+  }
+}
+
+// ==================================================
+// Perlin-noise background particle class
+// ==================================================
+class BgParticle {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.x = random(width);
+    this.y = random(height);
+    this.speed = random(0.5, 2);
+    this.size = random(10, 35);
+    this.color = random(palette);
+  }
+
+  update() {
+    let angle = noise(
+      this.x * noiseScale,
+      this.y * noiseScale,
+      frameCount * noiseTimeScale
+    ) * TWO_PI * 2;
+
+    this.x += cos(angle) * this.speed;
+    this.y += sin(angle) * this.speed;
+
+    if (
+      this.x < -50 || this.x > width + 50 ||
+      this.y < -50 || this.y > height + 50
+    ) {
+      this.reset();
+    }
+  }
+
+  draw() {
+    noStroke();
+    let c = this.color;
+    fill(red(c), green(c), blue(c), 60);
+    ellipse(this.x, this.y, this.size, this.size);
+  }
+}
+
+function createBgParticles() {
+  bgParticles = [];
+  let count = 400; // increase for a denser look
+
+  for (let i = 0; i < count; i++) {
+    bgParticles.push(new BgParticle());
+  }
+}
+
+// ADDED ATTEMPT #2
 
 function assignAnimationParams() {
   for (let seg of bgSegments) {
@@ -23,63 +90,13 @@ function assignAnimationParams() {
   }
 }
 // =====================================
-// 2. Background Pattern (updated with perlin noise approach) ADDED ATTEMPT #1
+// 2. Background Pattern (updated with perlin noise approach) REVISED ATTEMPT #2
 // =====================================
 
 function drawBgPattern() {
-  noStroke();                    // no outlines around shapes
-  let size = min(width, height); // keep square aspect ratio
-  let startX = (width - size) / 2;
-  let startY = (height - size) / 2;
-
-  for (let seg of bgSegments) {
-    // 1) Base grid position (same as group code)
-    let cellSize = size / gridSize;
-    let baseX = startX + (seg.col + 0.5) * cellSize;
-    let baseY = startY + (seg.row + 0.5) * cellSize;
-
-    // 2) Sample Perlin noise in 3D: (x, y, time)
-    let noiseVal = noise(
-      seg.col * noiseScale,          // spatial X in noise space
-      seg.row * noiseScale,          // spatial Y in noise space
-      frameCount * noiseTimeScale    // time dimension
-    );
-
-    // 3) Use noise to decide how much to move + how big to be
-    //    seg.amp comes from assignAnimationParams()
-    let maxOffset = cellSize * seg.amp;                 // how far shapes can drift
-    let offsetAmount = map(noiseVal, 0, 1, -maxOffset, maxOffset);
-    let sizeFactor   = map(noiseVal, 0, 1, 0.7, 1.3);   // scales size between 70% and 130%
-
-    // 4) Convert noise value into an angle (direction of drift)
-    let angle = map(noiseVal, 0, 1, 0, TWO_PI);
-    let offsetX = cos(angle) * offsetAmount;
-    let offsetY = sin(angle) * offsetAmount;
-
-    // Final position after drift
-    let x = baseX + offsetX;
-    let y = baseY + offsetY;
-
-    // 5) Base size taken from grid cell, then scaled
-    let baseSize = cellSize * shapeSize;
-    let w = baseSize * sizeFactor;
-    let h = baseSize * sizeFactor;
-
-    // 6) Optional: slightly modulate alpha / brightness with noise
-    let r = red(seg.color);
-    let g = green(seg.color);
-    let b = blue(seg.color);
-    let alpha = map(noiseVal, 0, 1, 160, 255);
-
-    fill(r, g, b, alpha);
-
-    // 7) Draw either circle or square (same logic as group base)
-    if (seg.shape === 0) {
-      ellipse(x, y, w, h); // circle
-    } else {
-      rectMode(CENTER);
-      rect(x, y, w, h);    // square
-    }
+  for (let p of bgParticles) {
+    p.update();
+    p.draw();
   }
 }
 
@@ -121,11 +138,23 @@ function drawBullPattern() {
 }
 
 // =====================================
-// 4. DRAW EVERYTHING TOGETHER
+// 4. DRAW EVERYTHING TOGETHER - REVISED ATTEMPT 2
 // =====================================
 
 function drawAll() {
-  background(backColor); // clear canvas
-  drawBgPattern();       // draw animated background
-  drawBullPattern();     // draw animated bull foreground
+  // soft fading background so trails appear
+  noStroke();
+  fill(
+    red(backColor),
+    green(backColor),
+    blue(backColor),
+    40
+  );
+  rect(0, 0, width, height);
+
+  // new fluid noise background
+  drawBgPattern();
+
+  // original bull foreground
+  drawBullPattern();
 }
